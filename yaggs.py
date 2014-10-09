@@ -42,9 +42,8 @@ class Yaggs:
 			if command == "M":
 				channel, message = self.get_string(), self.get_string()
 				self.queue.appendleft((channel, message))
-		except KeyboardInterrupt: pass
-#		except (socket.timeout, socket.error):
-#			pass
+		except (socket.timeout, socket.error):
+			pass
 
 	@staticmethod
 	def connect(address):
