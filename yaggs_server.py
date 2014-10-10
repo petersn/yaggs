@@ -39,7 +39,7 @@ class YaggsHandler(ss.StreamRequestHandler):
 				channel_name = self.get_string()
 				message = self.get_string()
 				with global_lock:
-					handler_list = list(subscriptions[channel_name])
+					handler_list = list(subscriptions.get(channel_name, []))
 				for handler in handler_list:
 					try:
 						handler.wfile.write("M")
