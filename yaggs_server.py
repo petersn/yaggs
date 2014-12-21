@@ -1,19 +1,16 @@
 #! /usr/bin/python
 
-import SocketServer as ss
-import traceback, socket, struct, threading
+import SocketServer, struct, threading
 
 YAGGS_PORT = 50321
 
-class ThreadingTCPServer(ss.ThreadingMixIn, ss.TCPServer): pass
-
-class YaggsServer(ThreadingTCPServer):
+class YaggsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 	allow_reuse_address = True
 
 subscriptions = {}
 global_lock = threading.Lock()
 
-class YaggsHandler(ss.StreamRequestHandler):
+class YaggsHandler(SocketServer.StreamRequestHandler):
 	def handle(self):
 		print "Connection from:", self.client_address[0]
 		self.keep_going = True
