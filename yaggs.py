@@ -77,6 +77,13 @@ class Yaggs:
 		except socket.timeout:
 			pass
 
+	def spawn_thread(self):
+		import thread
+		def process():
+			while True:
+				self.process(block=True)
+		thread.start_new_thread(process, ())
+
 	def close(self):
 		self.sock.close()
 
