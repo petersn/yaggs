@@ -31,7 +31,7 @@ This lets us spawn off a thread to manage the processing, if we want:
 	# Now y.queue fills up magically, all by itself!
 """
 
-import struct, collections, socket
+import struct, collections, socket, Queue
 
 YAGGS_PORT = 50321
 
@@ -40,6 +40,7 @@ class Yaggs:
 		self.sock = sock
 		self.f = sock.makefile()
 		self.queue = collections.deque()
+		self.replies = Queue.Queue()
 
 	def get_string(self):
 		length, = struct.unpack("<Q", self.f.read(8))
@@ -52,19 +53,39 @@ class Yaggs:
 		self.f.flush()
 
 	def enter(self, channel):
-		"""enter(self, channel) -> joins a given channel"""
+		"""enter(self, channel) -> None
+		Joins a given channel."""
 		self.f.write("E")
 		self.put_strings(channel)
 
 	def leave(self, channel):
-		"""leave(self, channel) -> leaves a given channel"""
+		"""leave(self, channel) -> None
+		Leaves a given channel."""
 		self.f.write("L")
 		self.put_strings(channel)
 
 	def message(self, channel, message):
-		"""message(self, channel, message) -> sends a message to a given channel"""
+		"""message(self, channel, message) -> None
+		Sends a message to a given channel."""
 		self.f.write("M")
 		self.put_strings(channel, message)
+
+	def set(self, key, value):
+		"""set(self, key, value) -> None
+		Sets the key/value pair."""
+		self.f.write("S")
+		self.put_strings(key, value)
+
+	def get(self, key):
+		"""get(self, key) -> value
+		Retrieves a key/value pair.
+		WARNING: This method will hang unless another thread is calling process()!
+		If you want to use this, try calling .spawn_thread() to handle this."""
+		self.f.write("G")
+		self.put_strings(key)
+		kv = self.replies.get()
+		assert kv[0] == key, "replies got desynced!"
+		return kv[1]
 
 	def process(self, block=False):
 		"""process(self) -> reads messages from the network, and saves them to self.queue"""
@@ -74,6 +95,9 @@ class Yaggs:
 			if command == "M":
 				channel, message = self.get_string(), self.get_string()
 				self.queue.appendleft((channel, message))
+			elif command == "S":
+				key, value = self.get_string(), self.get_string()
+				self.replies.put((key, value))
 		except socket.timeout:
 			pass
 

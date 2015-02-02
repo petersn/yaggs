@@ -8,6 +8,7 @@ class YaggsServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 	allow_reuse_address = True
 
 subscriptions = {}
+key_value_store = {}
 global_lock = threading.Lock()
 
 class YaggsHandler(SocketServer.StreamRequestHandler):
@@ -45,6 +46,20 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 					except:
 						print "Error writing, reaping."
 						handler.reap()
+			elif command == "S":
+				# Set a key.
+				key = self.get_string()
+				value = self.get_string()
+				with global_lock:
+					key_value_store[key] = value
+			elif command == "G":
+				# Get a key.
+				key = self.get_string()
+				with global_lock:
+					value = key_value_store[key]
+				self.wfile.write("S")
+				self.put_string(key)
+				self.put_string(value)
 
 	def get_string(self):
 		length = self.rfile.read(8)
