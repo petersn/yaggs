@@ -56,10 +56,14 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 				# Get a key.
 				key = self.get_string()
 				with global_lock:
-					value = key_value_store[key]
-				self.wfile.write("S")
-				self.put_string(key)
-				self.put_string(value)
+					value = key_value_store.get(key, None)
+				if value == None:
+					self.wfile.write("E")
+					self.put_string("key not found")
+				else:
+					self.wfile.write("S")
+					self.put_string(key)
+					self.put_string(value)
 
 	def get_string(self):
 		length = self.rfile.read(8)

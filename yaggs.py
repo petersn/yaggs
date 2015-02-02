@@ -84,6 +84,9 @@ class Yaggs:
 		self.f.write("G")
 		self.put_strings(key)
 		kv = self.replies.get()
+		if isinstance(kv, str):
+			# Raise the error message.
+			raise Exception(kv)
 		assert kv[0] == key, "replies got desynced!"
 		return kv[1]
 
@@ -98,6 +101,9 @@ class Yaggs:
 			elif command == "S":
 				key, value = self.get_string(), self.get_string()
 				self.replies.put((key, value))
+			elif command == "E":
+				error_message = self.get_string()
+				self.replies.put(error_message)
 		except socket.timeout:
 			pass
 
