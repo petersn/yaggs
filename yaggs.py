@@ -70,6 +70,13 @@ class Yaggs:
 		self.f.write("M")
 		self.put_strings(channel, message)
 
+	def count(self, channel):
+		"""count(self, channel) -> count of users in channel
+		Asks how many people are in a given channel."""
+		self.f.write("C")
+		self.put_strings(channel)
+		return self.replies.get()
+
 	def set(self, key, value):
 		"""set(self, key, value) -> None
 		Sets the key/value pair."""
@@ -104,6 +111,9 @@ class Yaggs:
 			elif command == "E":
 				error_message = self.get_string()
 				self.replies.put(error_message)
+			elif command == "C":
+				value, = struct.unpack("<Q", self.f.read(8))
+				self.replies.put(value)
 		except socket.timeout:
 			pass
 

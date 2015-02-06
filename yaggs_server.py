@@ -15,6 +15,7 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 	def handle(self):
 		print "Connection from:", self.client_address[0]
 		self.keep_going = True
+		self.owned_variables = set()
 		while self.keep_going:
 			command = self.rfile.read(1)
 			if not command:
@@ -46,12 +47,21 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 					except:
 						print "Error writing, reaping."
 						handler.reap()
+			elif command == "C":
+				# Count number of people in a given channel.
+				channel_name = self.get_string()
+				with global_lock:
+					count = len(subscriptions.get(channel_name, ()))
+				self.wfile.write("C" + struct.pack("<Q", count))
+				self.wfile.flush()
 			elif command == "S":
 				# Set a key.
 				key = self.get_string()
 				value = self.get_string()
 				with global_lock:
 					key_value_store[key] = value
+				# Take ownership of the key/value pair, so we can claim it when we reap.
+				self.owned_variables.add(key)
 			elif command == "G":
 				# Get a key.
 				key = self.get_string()
@@ -83,9 +93,14 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 	def reap(self):
 		self.keep_going = False
 		with global_lock:
+			# Remove ourself from the channels we're in.
 			for handlers in subscriptions.values():
 				if self in handlers:
 					handlers.remove(self)
+			# Get rid of our variables.
+			for key in self.owned_variables:
+				if key in key_value_store:
+					key_value_store.remove(key)
 
 print "Running on port %s" % YAGGS_PORT
 YaggsServer(("", YAGGS_PORT), YaggsHandler).serve_forever()
