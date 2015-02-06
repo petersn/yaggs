@@ -112,7 +112,7 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 			# Get rid of our variables.
 			for key in self.owned_variables:
 				if key in key_value_store:
-					key_value_store.remove(key)
+					key_value_store.pop(key)
 
 print "Running on port %s" % YAGGS_PORT
 YaggsServer(("", YAGGS_PORT), YaggsHandler).serve_forever()
