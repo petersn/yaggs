@@ -83,6 +83,11 @@ class Yaggs:
 		self.put_strings(channel)
 		return self.replies.get()
 
+	def list_channels(self):
+		self.f.write("N")
+		self.f.flush()
+		return self.replies.get()
+
 	def set(self, key, value):
 		"""set(self, key, value) -> None
 		Sets the key/value pair."""
@@ -98,6 +103,7 @@ class Yaggs:
 		self.put_strings(key)
 		kv = self.replies.get()
 		if isinstance(kv, str):
+			return None
 			# Raise the error message.
 			raise Exception(kv)
 		assert kv[0] == key, "replies got desynced!"
@@ -117,7 +123,7 @@ class Yaggs:
 			elif command == "E":
 				error_message = self.get_string()
 				self.replies.put(error_message)
-			elif command == "C":
+			elif command in ("C", "N"):
 				value, = struct.unpack("<Q", self.f.read(8))
 				names = [self.get_string() for i in xrange(value)]
 				self.replies.put(names)

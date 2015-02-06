@@ -59,6 +59,13 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 			elif command == "I":
 				# Set my ID string.
 				self.name = self.get_string()
+			elif command == "N":
+				# eNumerate all the channels.
+				with global_lock:
+					names = subscriptions.keys()
+				self.wfile.write("N" + struct.pack("<Q", len(names)))
+				for name in names:
+					self.put_string(name)
 			elif command == "S":
 				# Set a key.
 				key = self.get_string()
