@@ -16,6 +16,7 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 		print "Connection from:", self.client_address[0]
 		self.keep_going = True
 		self.owned_variables = set()
+		self.name = ""
 		while self.keep_going:
 			command = self.rfile.read(1)
 			if not command:
@@ -51,9 +52,13 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 				# Count number of people in a given channel.
 				channel_name = self.get_string()
 				with global_lock:
-					count = len(subscriptions.get(channel_name, ()))
-				self.wfile.write("C" + struct.pack("<Q", count))
-				self.wfile.flush()
+					names = [sub.name for sub in subscriptions.get(channel_name, [])]
+				self.wfile.write("C" + struct.pack("<Q", len(names)))
+				for name in names:
+					self.put_string(name)
+			elif command == "I":
+				# Set my ID string.
+				self.name = self.get_string()
 			elif command == "S":
 				# Set a key.
 				key = self.get_string()

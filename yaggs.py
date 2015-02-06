@@ -64,11 +64,17 @@ class Yaggs:
 		self.f.write("L")
 		self.put_strings(channel)
 
-	def message(self, channel, message):
+	def send(self, channel, message):
 		"""message(self, channel, message) -> None
 		Sends a message to a given channel."""
 		self.f.write("M")
 		self.put_strings(channel, message)
+
+	def set_id(self, name):
+		"""set_id(self, name) -> None
+		Sets our name, as returned by count()."""
+		self.f.write("I")
+		self.put_strings(name)
 
 	def count(self, channel):
 		"""count(self, channel) -> count of users in channel
@@ -113,7 +119,8 @@ class Yaggs:
 				self.replies.put(error_message)
 			elif command == "C":
 				value, = struct.unpack("<Q", self.f.read(8))
-				self.replies.put(value)
+				names = [self.get_string() for i in xrange(value)]
+				self.replies.put(names)
 		except socket.timeout:
 			pass
 
