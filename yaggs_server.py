@@ -34,13 +34,17 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 				with global_lock:
 					if channel_name in subscriptions and self in subscriptions[channel_name]:
 						subscriptions[channel_name].remove(self)
-			elif command == "M":
+			elif command == "M" or command == "T":
+				echo = command == "M"
 				# Send a message to a channel.
 				channel_name = self.get_string()
 				message = self.get_string()
 				with global_lock:
 					handler_list = list(subscriptions.get(channel_name, []))
 				for handler in handler_list:
+					# Don't echo for the "T" command.
+					if handler == self and not echo:
+						continue
 					try:
 						handler.wfile.write("M")
 						handler.put_string(channel_name)
