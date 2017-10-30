@@ -41,25 +41,25 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 				message = self.get_string()
 				with global_lock:
 					handler_list = list(subscriptions.get(channel_name, []))
-				for handler in handler_list:
-					# Don't echo for the "T" command.
-					if handler == self and not echo:
-						continue
-					try:
-						handler.wfile.write("M")
-						handler.put_string(channel_name)
-						handler.put_string(message)
-					except:
-						print "Error writing, reaping."
-						handler.reap()
+					for handler in handler_list:
+						# Don't echo for the "T" command.
+						if handler == self and not echo:
+							continue
+						try:
+							handler.wfile.write("M")
+							handler.put_string(channel_name)
+							handler.put_string(message)
+						except:
+							print "Error writing, reaping."
+							handler.reap()
 			elif command == "C":
 				# Count number of people in a given channel.
 				channel_name = self.get_string()
 				with global_lock:
 					names = [sub.name for sub in subscriptions.get(channel_name, [])]
-				self.wfile.write("C" + struct.pack("<Q", len(names)))
-				for name in names:
-					self.put_string(name)
+					self.wfile.write("C" + struct.pack("<Q", len(names)))
+					for name in names:
+						self.put_string(name)
 			elif command == "I":
 				# Set my ID string.
 				self.name = self.get_string()
@@ -67,29 +67,34 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 				# eNumerate all the channels.
 				with global_lock:
 					names = subscriptions.keys()
-				self.wfile.write("N" + struct.pack("<Q", len(names)))
-				for name in names:
-					self.put_string(name)
+					self.wfile.write("N" + struct.pack("<Q", len(names)))
+					for name in names:
+						self.put_string(name)
 			elif command == "S":
 				# Set a key.
 				key = self.get_string()
 				value = self.get_string()
 				with global_lock:
 					key_value_store[key] = value
-				# Take ownership of the key/value pair, so we can claim it when we reap.
-				self.owned_variables.add(key)
+					# Take ownership of the key/value pair, so we can claim it when we reap.
+					self.owned_variables.add(key)
 			elif command == "G":
 				# Get a key.
 				key = self.get_string()
+				print "REQUEST TO GET KEY:", key
 				with global_lock:
 					value = key_value_store.get(key, None)
-				if value == None:
-					self.wfile.write("E")
-					self.put_string("key not found")
-				else:
-					self.wfile.write("S")
-					self.put_string(key)
-					self.put_string(value)
+					if value == None:
+						print "ERROR!"
+						self.wfile.write("E")
+						self.put_string("key not found")
+					else:
+						print "Got response."
+						self.wfile.write("S")
+						self.put_string(key)
+						self.put_string(value)
+					print "done sending."
+				print "done with key"
 
 	def get_string(self):
 		length = self.rfile.read(8)
@@ -117,6 +122,8 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 			for key in self.owned_variables:
 				if key in key_value_store:
 					key_value_store.pop(key)
+			# Reduce the subscriptions to just the unempty ones.
+			subscriptions = {k: v for k, v in subscriptions.iteritems() if v}
 
 print "Running on port %s" % YAGGS_PORT
 YaggsServer(("", YAGGS_PORT), YaggsHandler).serve_forever()
