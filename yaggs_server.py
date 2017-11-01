@@ -112,6 +112,7 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 		self.wfile.flush()
 
 	def reap(self):
+		global subscriptions
 		self.keep_going = False
 		with global_lock:
 			# Remove ourself from the channels we're in.
