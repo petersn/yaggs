@@ -51,7 +51,7 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 							handler.put_string(message)
 						except:
 							print "Error writing, reaping."
-							handler.reap()
+							handler.reap_have_lock_already()
 			elif command == "C":
 				# Count number of people in a given channel.
 				channel_name = self.get_string()
@@ -111,20 +111,23 @@ class YaggsHandler(SocketServer.StreamRequestHandler):
 		self.wfile.write(s)
 		self.wfile.flush()
 
-	def reap(self):
+	def reap_have_lock_already(self):
 		global subscriptions
 		self.keep_going = False
+		# Remove ourself from the channels we're in.
+		for handlers in subscriptions.values():
+			if self in handlers:
+				handlers.remove(self)
+		# Get rid of our variables.
+		for key in self.owned_variables:
+			if key in key_value_store:
+				key_value_store.pop(key)
+		# Reduce the subscriptions to just the unempty ones.
+		subscriptions = {k: v for k, v in subscriptions.iteritems() if v}
+
+	def reap(self):
 		with global_lock:
-			# Remove ourself from the channels we're in.
-			for handlers in subscriptions.values():
-				if self in handlers:
-					handlers.remove(self)
-			# Get rid of our variables.
-			for key in self.owned_variables:
-				if key in key_value_store:
-					key_value_store.pop(key)
-			# Reduce the subscriptions to just the unempty ones.
-			subscriptions = {k: v for k, v in subscriptions.iteritems() if v}
+			self.reap_have_lock_already()
 
 print "Running on port %s" % YAGGS_PORT
 YaggsServer(("", YAGGS_PORT), YaggsHandler).serve_forever()
